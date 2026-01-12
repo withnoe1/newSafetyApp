@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>AU Public Safety Citation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        :root {
+            --au-navy: #002f5d;
+            --au-gold: #eaaa00;
+        }
+        .au-header {
+            background-color: var(--au-navy);
+            border-bottom: 4px solid var(--au-gold);
+            padding: 15px 0;
+            margin-bottom: 30px;
+        }
+        .btn-au {
+            background-color: #ce1126; /* AU Red for primary action */
+            color: white;
+            font-weight: bold;
+            border: none;
+        }
+        .btn-au:hover { background-color: #a00e1e; color: white; }
+    </style>
+</head>
+<body class="bg-light">
+
+<header class="au-header shadow">
+    <div class="container d-flex align-items-center">
+        <img th:src="@{/images/au-logo.svg}"
+             alt="Andrews University Logo"
+             style="height: 50px; margin-right: 20px;">
+        <div class="text-white border-start ps-3 d-none d-sm-block">
+            <h2 class="mb-0 text-uppercase tracking-wider">Office of Campus Safety</h2>
+        </div>
+    </div>
+</header>
+
+<div class="container mb-5">
+    <div class="card shadow-lg p-4 mx-auto" style="max-width: 650px; border-radius: 12px;">
+        <h3 class="text-center mb-4" style="color: var(--au-navy);">New Traffic Citation</h3>
+        <form id="citationForm" th:action="@{/submit}" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="deviceSeqNo" th:value="${deviceSeqNo}">
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Issued By (Officer)</label>
+                <select name="issuedBy" class="form-select" required>
+                    <option value="">-- Select Officer --</option>
+                    <option th:each="o : ${officers}" th:value="${o.gwbattr_seqno}" th:text="${o.gwbattr_desc}"></option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Location</label>
+                <select name="locationCode" class="form-select" required>
+                    <option value="">-- Select Location --</option>
+                    <option th:each="l : ${locations}" th:value="${l.gwbattr_seqno}" th:text="${l.gwbattr_desc}"></option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label>Chalk Time (HHMM)</label>
+                <input type="text" id="chalk_time" class="form-control"
+                       placeholder="e.g., 1430"
+                       maxlength="4"
+                       onblur="validateMilitaryTime(this)">
+                <div id="time_error" class="text-danger small d-none">Please enter a valid time (0000-2359)</div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold d-block">Action Type</label>
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="actionType" id="typeNo" value="NONE">
+                    <label class="btn btn-outline-secondary" for="typeNo">No Violation</label>
+
+                    <input type="radio" class="btn-check" name="actionType" id="typeViol" value="VIOLATION" checked>
+                    <label class="btn btn-outline-danger" for="typeViol">Violation</label>
+
+                    <input type="radio" class="btn-check" name="actionType" id="typeWarn" value="WARNING">
+                    <label class="btn btn-outline-warning" for="typeWarn">Warning</label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Violation Reason</label>
+                <select name="violationCode" class="form-select" required>
+                    <option value="">-- Select Violation --</option>
+                    <option th:each="v : ${violations}"
+                            th:value="${v.code}"
+                            th:text="${v.description}">
+                    </option>
+                </select>
+            </div>
+
+            <div class="mb-4 p-3 border border-primary rounded bg-primary bg-opacity-10 shadow-sm">
+                <label class="form-label fw-bold text-primary">Permit Lookup</label>
+                <div class="input-group mb-3">
+                    <input type="text" id="permitNumber" class="form-control" placeholder="Search Permit #">
+                    <button class="btn btn-primary" type="button" onclick="lookupPermit()">Lookup</button>
+                </div>
+
+                <label class="form-label fw-small">VIN</label>
+                <input type="text" id="v_vin" name="vin" class="form-control mb-2">
+
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small">Make</label>
+                        <select id="v_make" name="makeCode" class="form-select">
+                            <option value="">--</option>
+                            <option th:each="m : ${makes}" th:value="${m.gwbattr_seqno}" th:text="${m.gwbattr_desc}"></option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Color</label>
+                        <select id="v_color" name="colorCode" class="form-select">
+                            <option value="">--</option>
+                            <option th:each="c : ${colors}" th:value="${c.gwbattr_seqno}" th:text="${c.gwbattr_desc}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-8">
+                        <label class="form-label small">Plate</label>
+                        <input type="text" id="v_plate" name="plateNumber" class="form-control text-uppercase" required>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small">State</label>
+                        <select id="v_state" name="stateCode" class="form-select">
+                            <option value="">--</option>
+                            <option th:each="s : ${states}" th:value="${s.gwbattr_seqno}" th:text="${s.gwbattr_desc}"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="personSection" class="mb-4 p-3 border border-success rounded bg-success bg-opacity-10 d-none">
+                <h6 class="text-success fw-bold border-bottom pb-2 mb-3">Permit Holder Details</h6>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="small fw-bold">ID</label>
+                        <input type="text" id="p_id" class="form-control form-control-sm" readonly>
+                    </div>
+                    <div class="col-6">
+                        <label class="small fw-bold">Name</label>
+                        <input type="text" id="p_name" class="form-control form-control-sm" readonly>
+                    </div>
+                    <div class="col-6">
+                        <label class="small fw-bold">Work Dept / Title</label>
+                        <input type="text" id="p_dept" class="form-control form-control-sm" readonly>
+                    </div>
+                    <div class="col-6">
+                        <label class="small fw-bold">Phone Number</label>
+                        <input type="tel" id="p_phone" class="form-control"
+                               placeholder="1234567890"
+                               inputmode="numeric"
+                               pattern="[0-9]*">
+                    </div>
+                    <div class="col-6">
+                        <label class="small fw-bold">Drivers License</label>
+                        <input type="text" id="p_dl" class="form-control form-control-sm" readonly>
+                    </div>
+                    <div class="col-6">
+                        <label class="small fw-bold">Work Location</label>
+                        <input type="text" id="p_loc" class="form-control form-control-sm" readonly>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="mb-4 p-3 bg-white border rounded shadow-sm">
+                <label class="form-label fw-bold">Evidence Photo</label>
+                <div id="photoPreviewContainer" class="mb-2 d-none text-center">
+                    <img id="photoPreview" src="#" alt="Preview" class="img-thumbnail" style="max-height: 200px;">
+                </div>
+                <input type="file" name="photo" id="photoInput" accept="image/*" capture="camera"
+                       class="form-control" onchange="previewImage(this)">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">Violation Notes</label>
+                <textarea name="publicNotes" class="form-control" rows="3" placeholder="Additional details..."></textarea>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-8">
+                    <button type="submit" class="btn btn-au w-100 py-3 shadow-sm rounded-pill">SUBMIT CITATION</button>
+                </div>
+                <div class="col-4">
+                    <button type="button" onclick="confirmClear()" class="btn btn-outline-secondary w-100 py-3 rounded-pill">Clear</button>
+                </div>
+            </div>
+        </form>
+
+        <script>
+            function previewImage(input) {
+                const preview = document.getElementById('photoPreview');
+                const container = document.getElementById('photoPreviewContainer');
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.src = e.target.result;
+                        container.classList.remove('d-none');
+                    }
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+            function confirmClear() {
+                if(confirm("Clear all data?")) document.getElementById('citationForm').reset();
+            }
+        </script>
+
+    </div>
+</div>
+<script th:src="@{/js/permit-lookup.js}"></script>
+</body>
+</html>
